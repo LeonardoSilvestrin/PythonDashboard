@@ -10,35 +10,27 @@ gastos = pd.read_excel("C:\\Users\\Leo\\Desktop\\PythonDashboard\\exemplo.xlsx")
 conversor_para_lista_de_floats =  lambda lst: [float(x) if np.isnan(x) == False else 0 for x in lst] 
 entradas_float = conversor_para_lista_de_floats(gastos['Entradas'].values)
 saidas_float =  conversor_para_lista_de_floats(gastos['Saídas'].values)
-#juntando as entradas e saídas em uma lista só, onde cada elemento é uma lista de 2 posições [entrada,saida]
-entradas_e_saidas = list(zip(entradas_float,saidas_float))
 
 #transformando em uma serie pandas indexada pela categoria do gasto
-gastos_por_tipo = pd.Series(entradas_e_saidas, index = gastos['Categoria'])
+entradas_indexadas = pd.Series(entradas_float, index = gastos['Categoria'])
+saidas_indexadas = pd.Series(saidas_float, index = gastos['Categoria'])
 
-entradas_por_categoria = {}
-saidas_por_categoria = {}
-ja_foi = []
-for categoria in gastos_por_tipo.index.tolist():
-    if categoria in ja_foi:
-        pass
-    else:
-        if categoria not in list(entradas_por_categoria.keys()):
-            entradas_por_categoria[categoria] = 0
-        if categoria not in list(saidas_por_categoria.keys()):
-            saidas_por_categoria[categoria] = 0
-        for valor in gastos_por_tipo[categoria].values:
-            entradas_por_categoria[categoria] += valor[0]
-            saidas_por_categoria[categoria]+= valor[1]
+#agrupando os valores gastos em cada categoria
+entradas_agrupadas = entradas_indexadas.groupby('Categoria').sum()
+saidas_agrupadas = saidas_indexadas.groupby('Categoria').sum()
+print(entradas_agrupadas)
+print((entradas_agrupadas != 0))
+#tirando os zeros
+entradas_agrupadas = entradas_agrupadas.loc[(entradas_agrupadas != 0)]
+saidas_agrupadas = saidas_agrupadas.loc[(saidas_agrupadas != 0)]
 
-x_entradas = list(entradas_por_categoria.keys())
-y_entradas = list(entradas_por_categoria.values())
+labels_entradas = entradas_agrupadas.index.tolist()
+labels_saidas = saidas_agrupadas.index.tolist()
+valores_entradas = entradas_agrupadas.values.tolist()
+valores_saidas = saidas_agrupadas.values.tolist()
 
-x_saidas = list(saidas_por_categoria.keys())
-y_saidas = list(saidas_por_categoria.values())
-
-fig1 = grafico.Figure(data = [grafico.Pie(labels = x_entradas, values = y_entradas)])
-fig2 = grafico.Figure(data = [grafico.Pie(labels = x_saidas, values = y_saidas)])
+fig1 = grafico.Figure(data = [grafico.Pie(labels = labels_entradas, values = valores_entradas)])
+fig2 = grafico.Figure(data = [grafico.Pie(labels = labels_saidas, values = valores_saidas)])
 
 fig1.update_layout(title = 'Entradas')
 fig2.update_layout(title = 'Saídas')
