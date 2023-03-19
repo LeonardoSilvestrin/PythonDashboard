@@ -1,46 +1,45 @@
 import plotly.graph_objs as grafico
 from plotly.subplots import make_subplots as subplot
-import openpyxl
+import pandas as pd 
+import numpy as np
 
-gastos = openpyxl.load_workbook("C:\\Users\\Leo\\Desktop\\PythonDashboard\\exemplo.xlsx", data_only=True)
 
-gastos = gastos.active
+gastos = pd.read_excel("C:\\Users\\Leo\\Desktop\\PythonDashboard\\exemplo.xlsx")
 
-lista_de_categorias= list([cell.value for cell in gastos['E']])
-lista_de_saidas = list([cell.value for cell in gastos['H']])
-lista_de_entradas = list([cell.value for cell in gastos['G']])
+#transforma os nan em float 0.0, retorna uma lista
+conversor_para_lista_de_floats =  lambda lst: [float(x) if np.isnan(x) == False else 0 for x in lst] 
+entradas_float = conversor_para_lista_de_floats(gastos['Entradas'].values)
+saidas_float =  conversor_para_lista_de_floats(gastos['Saídas'].values)
+#juntando as entradas e saídas em uma lista só, onde cada elemento é uma lista de 2 posições [entrada,saida]
+entradas_e_saidas = list(zip(entradas_float,saidas_float))
 
-concatenados = [(x,y,z) for x,y,z in zip(lista_de_categorias,lista_de_saidas,lista_de_entradas)]
+#transformando em uma serie pandas indexada pela categoria do gasto
+gastos_por_tipo = pd.Series(entradas_e_saidas, index = gastos['Categoria'])
 
-gastos_por_tipo ={}
-for transacao in concatenados:
-    tipo, entrada, saida = transacao
-    tipo = tipo if tipo is not None else "Desconhecido"
-    entrada = entrada if entrada is not None else 0
-    saida = saida if saida is not None else 0
-    if tipo not in gastos_por_tipo:
-        gastos_por_tipo[tipo] = [entrada,saida]
+entradas_por_categoria = {}
+saidas_por_categoria = {}
+ja_foi = []
+for categoria in gastos_por_tipo.index.tolist():
+    if categoria in ja_foi:
+        pass
     else:
-        gastos_por_tipo[tipo][0] += entrada
-        gastos_por_tipo[tipo][1] += saida
+        if categoria not in list(entradas_por_categoria.keys()):
+            entradas_por_categoria[categoria] = 0
+        if categoria not in list(saidas_por_categoria.keys()):
+            saidas_por_categoria[categoria] = 0
+        for valor in gastos_por_tipo[categoria].values:
+            entradas_por_categoria[categoria] += valor[0]
+            saidas_por_categoria[categoria]+= valor[1]
 
-entradas = {}
-saidas = {}
+x_entradas = list(entradas_por_categoria.keys())
+y_entradas = list(entradas_por_categoria.values())
 
-for key in gastos_por_tipo.keys():
-    if gastos_por_tipo[key][0] != 0:
-        entradas[key] = gastos_por_tipo[key][0]
-    if gastos_por_tipo[key][1] != 0:
-        saidas[key] = gastos_por_tipo[key][1]
-
-x_entradas = list(entradas.keys())
-y_entradas = list(entradas.values())
-
-x_saidas = list(saidas.keys())
-y_saidas = list(saidas.values())
+x_saidas = list(saidas_por_categoria.keys())
+y_saidas = list(saidas_por_categoria.values())
 
 fig1 = grafico.Figure(data = [grafico.Pie(labels = x_entradas, values = y_entradas)])
 fig2 = grafico.Figure(data = [grafico.Pie(labels = x_saidas, values = y_saidas)])
+
 fig1.update_layout(title = 'Entradas')
 fig2.update_layout(title = 'Saídas')
 
